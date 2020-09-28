@@ -40,12 +40,12 @@
 
 // Pin definition
 #define PIN_A_MQ135   A0  // Pin for analog input from MQ135
-#define PIN_ONE_WIRE   8  // 1-Wire pin
+#define PIN_ONE_WIRE  11  // 1-Wire pin
 
 // Reading interval
 // Note that OneWire data polling causes some delays, so don't expect exact timing defined in here.
 // Better not to touch it
-#define READING_INTERVAL 5000
+#define READING_INTERVAL 1000
 
 // Init delay, MQ135 needs some time to heat up, suggest to use delay 3 minutes => 3 * 60 * 1000
 // If you don't find this useful, comment next line out
@@ -105,7 +105,12 @@ void setup() {
     #endif
 
     #ifdef INIT_DELAY
-      delay(INIT_DELAY);
+      Serial.print("Init delay...");
+      unsigned long delayEnd= millis() + INIT_DELAY;
+      while (delayEnd > millis()) {
+        digitalWrite(LED_BUILTIN, ((millis() % 100) < 50) ? 1 : 0);
+      }
+      Serial.println("done");
     #endif
 }
 
@@ -122,9 +127,9 @@ void loop() {
 
     // Polling one wire data
     unsigned long stopPolling = millis() + READING_INTERVAL;
-    unsigned long longFlash = millis() + 500;
+    unsigned long longFlash = millis() + 100;
     while (stopPolling > millis()) {
-        digitalWrite(LED_BUILTIN, ((millis() < longFlash) || (millis() % 1000) < 100) ? 1 : 0);
+        digitalWrite(LED_BUILTIN, ((millis() < longFlash) || (millis() % 50) < 10) ? 1 : 0);
         hub.poll();
     }
 }
