@@ -69,7 +69,7 @@ void dumpAddress(char *prefix, OneWireItem *item, char *postfix);
 // Setup call
 void setup() {
     // Use serial only for debug, once deploying solution comment out Serial.begin line
-    Serial.begin(115200);
+//    Serial.begin(115200);
     Serial.println("OneWire-Hub MQ135 sensor");
 
     pinMode(LED_BUILTIN, OUTPUT);
@@ -117,7 +117,6 @@ void setup() {
 // Loop call
 void loop() {
     // Read value from sensor
-
     uint16_t mq135 = analogRead(PIN_A_MQ135);
     Serial.print("Read raw value: "); Serial.println(mq135);
 
@@ -127,9 +126,12 @@ void loop() {
 
     // Polling one wire data
     unsigned long stopPolling = millis() + READING_INTERVAL;
-    unsigned long longFlash = millis() + 100;
+    // Flash for 10ms
+    unsigned long longFlash = millis() + 10;
+    // Only Flash once every 30s
+    boolean flash = (millis() % 30000) < READING_INTERVAL ? 1 : 0;
     while (stopPolling > millis()) {
-        digitalWrite(LED_BUILTIN, ((millis() < longFlash) || (millis() % 50) < 10) ? 1 : 0);
+        digitalWrite(LED_BUILTIN, ((millis() < longFlash) && flash) ? 1 : 0);
         hub.poll();
     }
 }
