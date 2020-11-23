@@ -30,6 +30,8 @@
 */
 /**************************************************************************/
 
+//#define DEBUG
+
 #include <EEPROM.h>
 #include "OneWireHub.h"
 #include "OneWireItem.h"
@@ -47,9 +49,20 @@
 // Better not to touch it
 #define READING_INTERVAL 1000
 
+// Keep a moving average over this many readings
+#define MA_READINGS 32
+
+int ma_total = 0;
+int ma_output = 0;
+int ma_init = false;
+
 // Init delay, MQ135 needs some time to heat up, suggest to use delay 3 minutes => 3 * 60 * 1000
 // If you don't find this useful, comment next line out
-#define INIT_DELAY 180000
+#ifdef DEBUG
+  #define INIT_DELAY 5000
+#else
+  #define INIT_DELAY 180000
+#endif
 
 // Init Hub
 OneWireHub hub = OneWireHub(PIN_ONE_WIRE);
@@ -69,8 +82,10 @@ void dumpAddress(char *prefix, OneWireItem *item, char *postfix);
 // Setup call
 void setup() {
     // Use serial only for debug, once deploying solution comment out Serial.begin line
-//    Serial.begin(115200);
-    Serial.println("OneWire-Hub MQ135 sensor");
+    #ifdef DEBUG    
+      Serial.begin(115200);
+      Serial.println("OneWire-Hub MQ135 sensor");
+    #endif
 
     pinMode(LED_BUILTIN, OUTPUT);
 
@@ -101,7 +116,9 @@ void setup() {
 
     // Log addresses
     #ifdef USE_DS2438
+    #ifdef DEBUG
       dumpAddress("1-Wire DS2438 MQ135 device address: ", ds2438, "");
+    #endif
     #endif
 
     #ifdef INIT_DELAY
@@ -117,11 +134,30 @@ void setup() {
 // Loop call
 void loop() {
     // Read value from sensor
-    uint16_t mq135 = analogRead(PIN_A_MQ135);
-    Serial.print("Read raw value: "); Serial.println(mq135);
+    int mq135 = analogRead(PIN_A_MQ135);
+
+    // Modify moving average accordingly
+    if (!ma_init) {
+      // First reading, just use the one we read
+      ma_output = mq135;
+      ma_total = ma_output * MA_READINGS;
+      ma_init = true;
+    } else {
+      // Subtract one reading from total to give (MA_READINGS - 1) values totalled up.
+      ma_total -= ma_output;
+      // Add the value we just read
+      ma_total += mq135;
+      // And divide the total by readings to get the current average
+      ma_output = ma_total / MA_READINGS;
+    }
+
+    #ifdef DEBUG
+      Serial.print("MA value: "); Serial.print(ma_output);
+      Serial.print(" Last raw value: "); Serial.println(mq135);
+    #endif
 
     #ifdef USE_DS2438
-      ds2438->setVADVoltage(mq135);
+      ds2438->setVADVoltage(ma_output);
     #endif
 
     // Polling one wire data
