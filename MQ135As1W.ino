@@ -50,7 +50,7 @@
 #define READING_INTERVAL 1000
 
 // Keep a moving average over this many readings
-#define MA_READINGS 32
+#define MA_READINGS 48
 
 int ma_total = 0;
 int ma_output = 0;
@@ -132,6 +132,7 @@ void setup() {
 }
 
 // Loop call
+int samples = 0;
 void loop() {
     // Read value from sensor
     int mq135 = analogRead(PIN_A_MQ135);
